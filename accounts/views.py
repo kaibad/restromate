@@ -1,4 +1,3 @@
-from django.http import HttpResponse
 from django.shortcuts import render,redirect
 from django.contrib.auth import authenticate, get_user_model,login,logout
 from django.contrib import messages
@@ -19,6 +18,7 @@ def login_view(request):
     if request.method == "POST":
         username = request.POST.get("username")
         password = request.POST.get("password")
+        remember_me = request.POST.get("remember-me")
 
         print("Username:", username)
         # print("User exists:", User.objects.filter(username=username).exists())
@@ -34,6 +34,8 @@ def login_view(request):
         if user is not None:
             login(request,user)
             messages.success(request,"Login Sucessful")
+            if remember_me is None:
+                request.session.set_expiry(0)
             return redirect("tables_view_url")
         else:
             messages.error(request,"Invalid Credentials")

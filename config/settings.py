@@ -122,6 +122,8 @@ AUTH_USER_MODEL = "accounts.User"
 
 LOGIN_URL = "login_view_url"
 
+SESSION_COOKIE_AGE = 30 * 24 * 60 * 60
+
 
 
 # Email
