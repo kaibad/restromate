@@ -30,7 +30,7 @@ A role-based **Restaurant Management System** built with Django. Restomate helps
 
 ## Sequence Diagram
 
-![Restomate Sequence Diagram](docs/images/sequence-diagram.png)
+![Restomate Sequence Diagram](docs/images/Restrimate.drawio.svg)
 
 > Placeholder: replace `docs/images/sequence-diagram.png` with the exported diagram.
 
