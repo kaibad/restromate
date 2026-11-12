@@ -77,14 +77,13 @@
                     </div>
                 </div>
 
+                <!-- Table Selection -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                     {% for table in tables %}
 
-                    <label class="cursor-pointer">
-                        <input type="radio" name="selected_table" value="{{ table.id }}" class="peer hidden" />
-
+                    <a href="{% url 'menu_view_url' table.id %}" class="block">
                         <div
-                            class="border-2 border-gray-200 rounded-xl p-4 transition hover:border-orange-400 peer-checked:border-orange-500 peer-checked:bg-orange-50"
+                            class="border-2 border-gray-200 rounded-xl p-4 transition hover:border-orange-400 hover:bg-orange-50"
                         >
                             <div class="flex justify-between items-center mb-4">
                                 <div class="bg-orange-100 text-orange-600 p-3 rounded-lg">
@@ -104,12 +103,10 @@
 
                             <p class="text-xs text-gray-500 mt-1">{{ table.capacity|default:"Not set" }} Persons</p>
                         </div>
-                    </label>
+                    </a>
 
                     {% empty %}
-
                     <p class="col-span-full text-center text-gray-500 py-8">No tables available.</p>
-
                     {% endfor %}
                 </div>
             </div>
