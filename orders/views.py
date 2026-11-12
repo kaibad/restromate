@@ -15,3 +15,5 @@ def tables_view(request):
     }
 
     return render(request,"orders/tables.html",context)
+
+
