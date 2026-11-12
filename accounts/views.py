@@ -20,7 +20,7 @@ def login_view(request):
         password = request.POST.get("password")
         remember_me = request.POST.get("remember-me")
 
-        print("Username:", username)
+        # print("Username:", username)
         # print("User exists:", User.objects.filter(username=username).exists())
 
         user = authenticate(

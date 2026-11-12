@@ -7,6 +7,16 @@ from .models import User
 class CustomUserAdmin(UserAdmin):
     model = User
 
+    list_display = (
+    'username',
+    'first_name',
+    'last_name',
+    'email',
+    'role',
+    'is_staff',
+    'is_active',
+)
+
     fieldsets = list(UserAdmin.fieldsets or []) + [
         ('Role info', {
             'fields': ('role',),
