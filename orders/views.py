@@ -72,9 +72,18 @@ def menu_view(request, table_id):
         messages.success(request, f"Order placed for {table.name}.")
         return redirect("tables_view_url")
 
+    orders = (
+        Order.objects.filter(table=table)
+        .exclude(status=Order.ORDER_STATUS.BILLED)
+        .prefetch_related("items__menu_item")
+        .order_by("-created_at")
+    )
+    # print(f"order {orders}")
     context = {
         "categories": Category.objects.prefetch_related("items"),
         "table": table,
         "table_id": table_id,
+        "orders": orders,
+        "unbilled_total": sum(order.total for order in orders),
     }
     return render(request, "orders/menu.html", context)

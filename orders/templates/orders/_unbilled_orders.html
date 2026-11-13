@@ -1,0 +1,34 @@
+{% load humanize %} {% for order in orders %}
+<div class="mb-3 rounded-lg border border-slate-100 bg-slate-50 p-3">
+  <div class="mb-1 flex items-center justify-between">
+    <span
+      class="text-xs text-slate-500"
+      title="{{ order.created_at|date:'Y-m-d H:i' }}"
+    >
+      {{ order.created_at|naturaltime }}
+    </span>
+    <span
+      class="rounded-full px-2 py-0.5 text-xs font-medium {% if order.status == 'P' %}bg-amber-100 text-amber-800{% elif order.status == 'R' %}bg-teal-100 text-teal-800{% else %}bg-slate-200 text-slate-700{% endif %}"
+    >
+      {{ order.get_status_display }}
+    </span>
+  </div>
+
+  <ul class="text-sm">
+    {% for line in order.items.all %}
+    <li class="flex justify-between gap-3 py-0.5">
+      <span>{{ line.quantity }} × {{ line.menu_item.name }}</span>
+      <span>NRS {{ line.line_total|intcomma }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+
+  <p class="mt-1 text-right text-xs font-semibold text-slate-600">
+    Order total: NRS {{ order.total|intcomma }}
+  </p>
+</div>
+{% empty %}
+<p class="py-4 text-center text-sm text-slate-500">
+  No un-billed orders for this table.
+</p>
+{% endfor %}
