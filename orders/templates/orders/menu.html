@@ -8,10 +8,11 @@
     </head>
 
     <body class="min-h-screen bg-slate-50 text-slate-900">
-        <!-- The whole page is one form: every quantity box is submitted with it -->
+        <!-- The whole page is one form: order-items (item_id + quantity) is submitted with it -->
         <form method="POST" action="">
             {% csrf_token %}
             <input type="hidden" name="table-id" value="{{ table_id }}" />
+            <input type="hidden" name="order-items" id="order-items" value="{}" />
 
             <!-- Header + category chips (both stay fixed at the top) -->
             <header class="sticky top-0 z-20 border-b border-slate-200 bg-white">
@@ -81,7 +82,6 @@
                                     <input
                                         type="text"
                                         readonly
-                                        name="qty-{{ item.id }}"
                                         value="0"
                                         class="qty w-9 bg-transparent text-center font-semibold"
                                     />
@@ -171,6 +171,7 @@
             // Rebuild the selected lists, total and button state from every menu row
             function update() {
                 const lines = [];
+                const orderItems = [];
                 let total = 0;
                 let count = 0;
 
@@ -182,6 +183,7 @@
                     const price = Number(row.dataset.itemPrice);
                     total += qty * price;
                     count += qty;
+                    orderItems.push({ item_id: Number(row.dataset.itemId), quantity: qty });
                     lines.push({ left: `${qty} × ${row.dataset.itemName}`, right: `NRS ${qty * price}` });
                 });
 
@@ -201,6 +203,7 @@
                     );
                 });
 
+                document.getElementById("order-items").value = JSON.stringify(orderItems);
                 document.getElementById("empty-state").hidden = count > 0;
                 document.getElementById("bar-details").hidden = count === 0;
                 document.getElementById("total-price").textContent = `NRS ${total}`;
