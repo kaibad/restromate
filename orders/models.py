@@ -1,5 +1,6 @@
 
 from django.db import models
+import uuid
 
 # Create your models here.
 class Table(models.Model):
@@ -30,3 +31,35 @@ class MenuItem(models.Model):
      def __str__(self):
             return self.name
 
+
+class Order(models.Model):
+     class ORDER_STATUS(models.TextChoices):
+          PREPARING = 'P' , "Preparing"
+          READY = 'r','Ready'
+          SERVED = 's','Served'
+          BILLED = 'b','Billed'
+
+     id = models.UUIDField(primary_key=True,default=uuid.uuid4,editable=False)
+     table = models.ForeignKey(Table,on_delete=models.PROTECT,related_name="orders")
+     status =  models.CharField(max_length=2,choices=ORDER_STATUS,default=ORDER_STATUS.PREPARING)
+     created_at = models.DateTimeField(auto_now_add=True)
+
+     @property
+     def total(self):
+          return sum(item.line_total for item in self.items.all())
+
+     def __str__(self):
+          return f"{self.table} -> {self.created_at}"
+
+class OrderItem(models.Model):
+     order = models.ForeignKey(Order,on_delete=models.PROTECT,related_name="items")
+     menu_item = models.ForeignKey(MenuItem,on_delete=models.PROTECT,related_name="orders_items")
+     price = models.PositiveIntegerField()
+     quantity =  models.PositiveIntegerField(default=1)
+
+     @property
+     def line_total(self):
+          return self.price * self.quantity
+
+     def __str__(self):
+          return f"{self.menu_item} x {self.quantity}"

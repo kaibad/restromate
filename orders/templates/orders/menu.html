@@ -1,216 +1,287 @@
+{% load humanize %}
 <!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Take Order | RestroMate</title>
-        <script src="https://cdn.tailwindcss.com"></script>
-    </head>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Take Order | RestroMate</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
 
-    <body class="min-h-screen bg-slate-50 text-slate-900">
-        <!-- The whole page is one form: order-items (item_id + quantity) is submitted with it -->
-        <form method="POST" action="">
-            {% csrf_token %}
-            <input type="hidden" name="table-id" value="{{ table_id }}" />
-            <input type="hidden" name="order-items" id="order-items" value="{}" />
+  <body class="min-h-screen bg-slate-50 text-slate-900">
+    <!-- The whole page is one form: order-items (item_id + quantity) is submitted with it -->
+    <form method="POST" action="">
+      {% csrf_token %}
+      <input type="hidden" name="table-id" value="{{ table_id }}" />
+      <input type="hidden" name="order-items" id="order-items" value="[]" />
 
-            <!-- Header + category chips (both stay fixed at the top) -->
-            <header class="sticky top-0 z-20 border-b border-slate-200 bg-white">
-                <div class="mx-auto max-w-6xl px-4">
-                    <div class="flex items-center justify-between py-2">
-                        <div>
-                            <h1 class="text-lg font-bold">Take order</h1>
-                            <p class="text-sm text-slate-500">
-                                {% if table %}{{ table.name }}{% else %}Table {{ table_id }}{% endif %}
-                            </p>
-                        </div>
-                        <a
-                            href="{% url 'tables_view_url' %}"
-                            class="text-sm font-medium text-slate-600 hover:underline"
-                        >
-                            Back to tables
-                        </a>
-                    </div>
-
-                    <!-- Category chips: wrap onto new lines (no sideways scrolling), fixed with the header -->
-                    <nav class="flex flex-wrap gap-2 pb-3">
-                        {% for category in categories %}
-                        <a
-                            href="#category-{{ category.id }}"
-                            class="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium hover:border-teal-600 hover:text-teal-700"
-                        >
-                            {{ category.name }}
-                        </a>
-                        {% endfor %}
-                    </nav>
-                </div>
-            </header>
-
-            <main class="mx-auto max-w-6xl px-4 py-6 pb-72 lg:grid lg:grid-cols-[1fr_340px] lg:gap-8 lg:pb-8">
-                <!-- Menu -->
-                <section class="space-y-8">
-                    {% for category in categories %}
-                    <div id="category-{{ category.id }}" class="scroll-mt-44">
-                        <h2 class="mb-3 font-semibold text-slate-800">{{ category.name }}</h2>
-
-                        <ul class="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white">
-                            {% for item in category.items.all %}
-                            <li
-                                class="menu-item flex items-center justify-between gap-4 px-4 py-4"
-                                data-item-id="{{ item.id }}"
-                                data-item-name="{{ item.name }}"
-                                data-item-price="{{ item.price }}"
-                            >
-                                <div class="min-w-0">
-                                    <p class="font-medium">{{ item.name }}</p>
-                                    {% if item.description %}
-                                    <p class="text-sm text-slate-500">{{ item.description }}</p>
-                                    {% endif %}
-                                    <p class="mt-1 text-sm font-semibold text-slate-700">NRS {{ item.price }}</p>
-                                </div>
-
-                                <!-- Quantity stepper -->
-                                <div class="flex shrink-0 items-center gap-1">
-                                    <button
-                                        type="button"
-                                        data-step="-1"
-                                        aria-label="Remove one {{ item.name }}"
-                                        class="h-10 w-10 rounded-lg border border-slate-300 text-lg hover:bg-slate-50"
-                                    >
-                                        −
-                                    </button>
-                                    <input
-                                        type="text"
-                                        readonly
-                                        value="0"
-                                        class="qty w-9 bg-transparent text-center font-semibold"
-                                    />
-                                    <button
-                                        type="button"
-                                        data-step="1"
-                                        aria-label="Add one {{ item.name }}"
-                                        class="h-10 w-10 rounded-lg border border-slate-300 text-lg hover:bg-slate-50"
-                                    >
-                                        +
-                                    </button>
-                                </div>
-                            </li>
-                            {% empty %}
-                            <li class="px-4 py-4 text-sm text-slate-500">No items in this category yet.</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                    {% empty %}
-                    <p class="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-500">
-                        The menu is empty. Ask the owner to add menu items.
-                    </p>
-                    {% endfor %}
-                </section>
-
-                <!-- Selected items (desktop side panel) -->
-                <aside class="sticky top-44 hidden self-start rounded-xl border border-slate-200 bg-white p-5 lg:block">
-                    <h2 class="mb-3 font-semibold">Selected items</h2>
-
-                    <p id="empty-state" class="py-6 text-center text-sm text-slate-500">
-                        No items yet. Use + to add a dish.
-                    </p>
-                    <ul class="selected-list divide-y divide-slate-100 text-sm"></ul>
-
-                    <div class="mt-4 flex items-baseline justify-between border-t border-slate-100 pt-4">
-                        <span class="text-sm text-slate-500">Total</span>
-                        <span id="total-price" class="text-xl font-bold">NRS 0</span>
-                    </div>
-                    <button
-                        type="submit"
-                        disabled
-                        class="place-order mt-4 w-full rounded-xl bg-teal-700 py-3.5 font-semibold text-white hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
-                    >
-                        Place order
-                    </button>
-                </aside>
-            </main>
-
-            <!-- Mobile / tablet bottom bar: selected items + total + submit -->
-            <div
-                class="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white shadow-[0_-4px_12px_rgba(0,0,0,0.06)] lg:hidden"
-            >
-                <details id="bar-details" open hidden>
-                    <summary class="cursor-pointer list-none px-4 pt-3 text-sm font-semibold text-slate-700">
-                        Selected items
-                    </summary>
-                    <ul class="selected-list max-h-32 divide-y divide-slate-100 overflow-y-auto px-4 pb-2 text-sm"></ul>
-                </details>
-
-                <div class="flex items-center justify-between gap-4 p-3">
-                    <div class="pl-1">
-                        <p id="bar-count" class="text-sm text-slate-500">0 items</p>
-                        <p id="bar-total" class="font-bold">NRS 0</p>
-                    </div>
-                    <button
-                        type="submit"
-                        disabled
-                        class="place-order rounded-xl bg-teal-700 px-6 py-3.5 font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
-                    >
-                        Place order
-                    </button>
-                </div>
+      <!-- Header + category chips (both stay fixed at the top) -->
+      <header class="sticky top-0 z-20 border-b border-slate-200 bg-white">
+        <div class="mx-auto max-w-6xl px-4">
+          <div class="flex items-center justify-between py-2">
+            <div>
+              <h1 class="text-lg font-bold">Take order</h1>
+              <p class="text-sm text-slate-500">
+                {% if table %}{{ table.name }}{% else %}Table {{ table_id}}
+                {%endif %}
+              </p>
             </div>
-        </form>
+            <a
+              href="{% url 'tables_view_url' %}"
+              class="text-sm font-medium text-slate-600 hover:underline"
+            >
+              Back to tables
+            </a>
+          </div>
 
-        <script>
-            // data-step="1" or "-1" on the + / − buttons: change the quantity in that row
-            document.addEventListener("click", (event) => {
-                const button = event.target.closest("[data-step]");
-                if (!button) return;
+          <!-- Category chips -->
+          <nav class="flex flex-wrap gap-2 pb-3">
+            {% for category in categories %}
+            <a
+              href="#category-{{ category.id }}"
+              class="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium hover:border-teal-600 hover:text-teal-700"
+            >
+              {{ category.name }}
+            </a>
+            {% endfor %}
+          </nav>
+        </div>
+      </header>
 
-                const box = button.closest(".menu-item").querySelector(".qty");
-                box.value = Math.max(0, Number(box.value) + Number(button.dataset.step));
-                update();
-            });
+      <main
+        class="mx-auto max-w-6xl px-4 py-6 pb-72 lg:grid lg:grid-cols-[1fr_340px] lg:gap-8 lg:pb-8"
+      >
+        <!-- Un-billed orders (mobile / tablet only) -->
+        <details
+          class="mb-6 rounded-xl border border-slate-200 bg-white p-4 lg:hidden"
+        >
+          <summary
+            class="flex cursor-pointer list-none items-center justify-between font-semibold"
+          >
+            <span>
+              Un-billed orders{% if orders %} ({{ orders|length }}){% endif %}
+            </span>
+            {% if orders %}
+            <span class="text-sm text-slate-700">
+              NRS {{ unbilled_total|intcomma }}
+            </span>
+            {% endif %}
+          </summary>
 
-            // Rebuild the selected lists, total and button state from every menu row
-            function update() {
-                const lines = [];
-                const orderItems = [];
-                let total = 0;
-                let count = 0;
+          <div class="mt-3">{% include "orders/_unbilled_orders.html" %}</div>
+        </details>
 
-                document.querySelectorAll(".menu-item").forEach((row) => {
-                    const qty = Number(row.querySelector(".qty").value);
-                    if (qty === 0) return;
+        <!-- Menu -->
+        <section class="space-y-8">
+          {% for category in categories %}
+          <div id="category-{{ category.id }}" class="scroll-mt-44">
+            <h2 class="mb-3 font-semibold text-slate-800">
+              {{ category.name }}
+            </h2>
 
-                    // data-item-name -> dataset.itemName, data-item-price -> dataset.itemPrice
-                    const price = Number(row.dataset.itemPrice);
-                    total += qty * price;
-                    count += qty;
-                    orderItems.push({ item_id: Number(row.dataset.itemId), quantity: qty });
-                    lines.push({ left: `${qty} × ${row.dataset.itemName}`, right: `NRS ${qty * price}` });
-                });
+            <ul
+              class="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white"
+            >
+              {% for item in category.items.all %}
+              <li
+                class="menu-item flex items-center justify-between gap-4 px-4 py-4"
+                data-item-id="{{ item.id }}"
+                data-item-name="{{ item.name }}"
+                data-item-price="{{ item.price }}"
+              >
+                <div class="min-w-0">
+                  <p class="font-medium">{{ item.name }}</p>
+                  {% if item.description %}
+                  <p class="text-sm text-slate-500">{{ item.description }}</p>
+                  {% endif %}
+                  <p class="mt-1 text-sm font-semibold text-slate-700">
+                    NRS {{ item.price|intcomma }}
+                  </p>
+                </div>
 
-                // Fill both lists: the desktop side panel and the mobile bottom bar
-                document.querySelectorAll(".selected-list").forEach((list) => {
-                    list.replaceChildren(
-                        ...lines.map((line) => {
-                            const li = document.createElement("li");
-                            li.className = "flex justify-between gap-3 py-1.5";
-                            for (const text of [line.left, line.right]) {
-                                const span = document.createElement("span");
-                                span.textContent = text;
-                                li.append(span);
-                            }
-                            return li;
-                        }),
-                    );
-                });
+                <!-- Quantity stepper -->
+                <div class="flex shrink-0 items-center gap-1">
+                  <button
+                    type="button"
+                    data-step="-1"
+                    aria-label="Remove one {{ item.name }}"
+                    class="h-10 w-10 rounded-lg border border-slate-300 text-lg hover:bg-slate-50"
+                  >
+                    −
+                  </button>
+                  <input
+                    type="text"
+                    readonly
+                    value="0"
+                    class="qty w-9 bg-transparent text-center font-semibold"
+                  />
+                  <button
+                    type="button"
+                    data-step="1"
+                    aria-label="Add one {{ item.name }}"
+                    class="h-10 w-10 rounded-lg border border-slate-300 text-lg hover:bg-slate-50"
+                  >
+                    +
+                  </button>
+                </div>
+              </li>
+              {% empty %}
+              <li class="px-4 py-4 text-sm text-slate-500">
+                No items in this category yet.
+              </li>
+              {% endfor %}
+            </ul>
+          </div>
+          {% empty %}
+          <p
+            class="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-500"
+          >
+            The menu is empty. Ask the owner to add menu items.
+          </p>
+          {% endfor %}
+        </section>
 
-                document.getElementById("order-items").value = JSON.stringify(orderItems);
-                document.getElementById("empty-state").hidden = count > 0;
-                document.getElementById("bar-details").hidden = count === 0;
-                document.getElementById("total-price").textContent = `NRS ${total}`;
-                document.getElementById("bar-total").textContent = `NRS ${total}`;
-                document.getElementById("bar-count").textContent = `${count} ${count === 1 ? "item" : "items"}`;
-                document.querySelectorAll(".place-order").forEach((b) => (b.disabled = count === 0));
-            }
-        </script>
-    </body>
+        <!-- Desktop side panel -->
+        <aside
+          class="sticky top-44 hidden max-h-[calc(100vh-12rem)] self-start overflow-y-auto rounded-xl border border-slate-200 bg-white p-5 lg:block"
+        >
+          <h2 class="mb-3 font-semibold">Selected items</h2>
+
+          <p id="empty-state" class="py-6 text-center text-sm text-slate-500">
+            No items yet. Use + to add a dish.
+          </p>
+          <ul class="selected-list divide-y divide-slate-100 text-sm"></ul>
+
+          <div
+            class="mt-4 flex items-baseline justify-between border-t border-slate-100 pt-4"
+          >
+            <span class="text-sm text-slate-500">Total</span>
+            <span id="total-price" class="text-xl font-bold">NRS 0</span>
+          </div>
+          <button
+            type="submit"
+            disabled
+            class="place-order mt-4 w-full rounded-xl bg-teal-700 py-3.5 font-semibold text-white hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+          >
+            Place order
+          </button>
+
+          <!-- Un-billed orders -->
+          <div class="mt-6 border-t border-slate-200 pt-4">
+            <div class="mb-3 flex items-baseline justify-between">
+              <h2 class="font-semibold">Un-billed orders</h2>
+              {% if orders %}
+              <span class="text-sm font-semibold text-slate-700">
+                NRS {{ unbilled_total|intcomma }}
+              </span>
+              {% endif %}
+            </div>
+
+            {% include "orders/_unbilled_orders.html" %}
+          </div>
+        </aside>
+      </main>
+
+      <!-- Mobile / tablet bottom bar: selected items + total + submit -->
+      <div
+        class="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white shadow-[0_-4px_12px_rgba(0,0,0,0.06)] lg:hidden"
+      >
+        <details id="bar-details" open hidden>
+          <summary
+            class="cursor-pointer list-none px-4 pt-3 text-sm font-semibold text-slate-700"
+          >
+            Selected items
+          </summary>
+          <ul
+            class="selected-list max-h-32 divide-y divide-slate-100 overflow-y-auto px-4 pb-2 text-sm"
+          ></ul>
+        </details>
+
+        <div class="flex items-center justify-between gap-4 p-3">
+          <div class="pl-1">
+            <p id="bar-count" class="text-sm text-slate-500">0 items</p>
+            <p id="bar-total" class="font-bold">NRS 0</p>
+          </div>
+          <button
+            type="submit"
+            disabled
+            class="place-order rounded-xl bg-teal-700 px-6 py-3.5 font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+          >
+            Place order
+          </button>
+        </div>
+      </div>
+    </form>
+
+    <script>
+      // data-step="1" or "-1" on the + / − buttons: change the quantity in that row
+      document.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-step]");
+        if (!button) return;
+
+        const box = button.closest(".menu-item").querySelector(".qty");
+        box.value = Math.max(
+          0,
+          Number(box.value) + Number(button.dataset.step),
+        );
+        update();
+      });
+
+      const fmt = (n) => n.toLocaleString("en-US");
+
+      // Rebuild the selected lists, total and button state from every menu row
+      function update() {
+        const lines = [];
+        const orderItems = [];
+        let total = 0;
+        let count = 0;
+
+        document.querySelectorAll(".menu-item").forEach((row) => {
+          const qty = Number(row.querySelector(".qty").value);
+          if (qty === 0) return;
+
+          const price = Number(row.dataset.itemPrice);
+          total += qty * price;
+          count += qty;
+          orderItems.push({
+            item_id: Number(row.dataset.itemId),
+            quantity: qty,
+          });
+          lines.push({
+            left: `${qty} × ${row.dataset.itemName}`,
+            right: `NRS ${fmt(qty * price)}`,
+          });
+        });
+
+        // Fill both lists: the desktop side panel and the mobile bottom bar
+        document.querySelectorAll(".selected-list").forEach((list) => {
+          list.replaceChildren(
+            ...lines.map((line) => {
+              const li = document.createElement("li");
+              li.className = "flex justify-between gap-3 py-1.5";
+              for (const text of [line.left, line.right]) {
+                const span = document.createElement("span");
+                span.textContent = text;
+                li.append(span);
+              }
+              return li;
+            }),
+          );
+        });
+
+        document.getElementById("order-items").value =
+          JSON.stringify(orderItems);
+        document.getElementById("empty-state").hidden = count > 0;
+        document.getElementById("bar-details").hidden = count === 0;
+        document.getElementById("total-price").textContent =
+          `NRS ${fmt(total)}`;
+        document.getElementById("bar-total").textContent = `NRS ${fmt(total)}`;
+        document.getElementById("bar-count").textContent =
+          `${count} ${count === 1 ? "item" : "items"}`;
+        document
+          .querySelectorAll(".place-order")
+          .forEach((b) => (b.disabled = count === 0));
+      }
+    </script>
+  </body>
 </html>
