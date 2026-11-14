@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Category, MenuItem, OrderHistory, Table, Order, OrderItem
+from .models import Category, KitchenStation, MenuItem, OrderHistory, Table, Order, OrderItem
 
 
 @admin.register(Table)
@@ -32,7 +32,7 @@ class CategoryAdmin(admin.ModelAdmin):
 
 @admin.register(MenuItem)
 class MenuItemAdmin(admin.ModelAdmin):
-    list_display = ("name", "category", "price","priority")
+    list_display = ("name", "category", "price","priority","est_time","station")
     list_filter = ("category",)
     list_select_related = ("category",)
     search_fields = ("name", "description", "category__name")
@@ -53,3 +53,4 @@ class OrderItemAdmin(admin.ModelAdmin):
 
 
 admin.site.register(OrderHistory)
+admin.site.register(KitchenStation)

@@ -2,8 +2,8 @@
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from orders.data.basic_menu_items import RESTAURANT_MENU_ITEM
-from orders.models import Category, MenuItem
+from orders.data.basic_menu_items import KITCHEN_STATION, RESTAURANT_MENU_ITEM
+from orders.models import Category, KitchenStation, MenuItem
 
 
 def display_name(key):
@@ -11,7 +11,7 @@ def display_name(key):
 
 
 class Command(BaseCommand):
-    help = "Populate basic menu categories and menu items"
+    help = "Populate kitchen stations, menu categories and menu items"
 
     @transaction.atomic
     def handle(self, *args, **options):
@@ -19,6 +19,16 @@ class Command(BaseCommand):
         self.items_created = 0
         self.items_updated = 0
 
+        # 1. Create the kitchen stations first, so items can point to them
+        self.stations = {}
+        stations_created = 0
+        for key, station_name in KITCHEN_STATION.items():
+            station, created = KitchenStation.objects.get_or_create(name=station_name)
+            self.stations[key] = station
+            if created:
+                stations_created += 1
+
+        # 2. Categories and items
         for category_key, content in RESTAURANT_MENU_ITEM.items():
             if isinstance(content, dict):
                 # Nested group (e.g. drinks), one category per sub-group
@@ -30,7 +40,8 @@ class Command(BaseCommand):
 
         self.stdout.write(
             self.style.SUCCESS(
-                f"Done: {self.categories_created} categories created, "
+                f"Done: {stations_created} stations created, "
+                f"{self.categories_created} categories created, "
                 f"{self.items_created} items created, "
                 f"{self.items_updated} items already existed (updated)."
             )
@@ -49,6 +60,8 @@ class Command(BaseCommand):
                     "price": item["price"],
                     "description": item["description"],
                     "priority": str(item["priority"]),
+                    "station": self.stations[item["station"]],
+                    "est_time": item["est_time"],
                 },
             )
             if item_created:

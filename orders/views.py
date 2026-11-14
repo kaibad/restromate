@@ -6,10 +6,12 @@ from django.shortcuts import get_object_or_404, redirect, render
 
 from accounts.models import User
 from .decorators import role_required
-from .models import Category, MenuItem, Order, OrderItem, Table
+from .models import Category, KitchenStation, MenuItem, Order, OrderItem, Table
 from django.contrib import messages
 
-# from .import signals
+from collections import defaultdict
+
+
 
 
 @role_required([User.ROLES_CHOICES.WAITER])
@@ -40,9 +42,7 @@ def menu_view(request, table_id):
         try:
             # This is a dict comprehension. It converts the list from the browser into a dict that maps item id to quantity.
             wanted = {int(e["item_id"]): int(e["quantity"]) for e in order_items} #wanted = {1: 2, 6: 1}
-            # wanted = {}
-            # for e in order_items:
-            #      wanted[int(e["item_id"])] = int(e["quantity"])
+
         except (KeyError, TypeError, ValueError):
             return HttpResponseBadRequest("Invalid order items.")
 
@@ -63,6 +63,7 @@ def menu_view(request, table_id):
                         menu_item=menu_items[item_id],
                         price=menu_items[item_id].price,  # price at order time
                         quantity=qty,
+                       priority=menu_items[item_id].priority
                     )
                     for item_id, qty in wanted.items()
                 ]
@@ -80,7 +81,6 @@ def menu_view(request, table_id):
         .prefetch_related("items__menu_item")
         .order_by("-created_at")
     )
-    # print(f"order {orders}")
     context = {
         "categories": Category.objects.prefetch_related("items"),
         "table": table,
@@ -93,5 +93,18 @@ def menu_view(request, table_id):
 
 @role_required([User.ROLES_CHOICES.KITCHEN])
 def kitchen_dashboard_view(request):
-    print("this is kitchen dashboard")
-    return HttpResponse("Kitchen Dashboard")
+    order_items = (
+        OrderItem.objects.filter(status=OrderItem.ITEM_STATUS.PREPARING)
+        .select_related("menu_item__station", "order__table")
+        .order_by("-priority", "order__created_at")
+    )
+
+    grouped_items = defaultdict(list)
+    for item in order_items:
+        station = item.menu_item.station
+        station_name = station.name if station else "No station"
+        grouped_items[station_name].append(item)
+
+
+    context = {"order_items": dict(grouped_items)}
+    return render(request, "orders/kitchen-dashboard.html", context)
