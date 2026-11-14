@@ -1,7 +1,9 @@
 from django.dispatch import receiver
 from django.db.models.signals import pre_save,post_save
 
-from .models import Order,OrderHistory
+from .models import Order,OrderHistory, OrderItem
+
+from django.db.models import Count, Q
 
 # o1 = = Order.objects.all()
 #
@@ -26,3 +28,29 @@ def remember_old_status(sender,instance,**kwargs):
 def create_order_history(sender, instance, created, **kwargs):
     if created or instance._old_status != instance.status:
         OrderHistory.objects.create(order=instance, status=instance.status)
+
+@receiver(post_save,sender=OrderItem)
+def handle_auto_order_status_update(sender, instance, **kwargs):
+    order = instance.order
+
+    # A billed order is finished, so item changes no longer affect it
+    if order.status == Order.ORDER_STATUS.BILLED:
+        return
+
+    counts = OrderItem.objects.filter(order=order).aggregate(
+        total=Count("id"),
+        served=Count("id", filter=Q(status=OrderItem.ITEM_STATUS.SERVED)),
+    )
+
+    if counts["served"] == 0:
+        new_status = Order.ORDER_STATUS.PENDING
+    elif counts["served"] == counts["total"]:
+        new_status = Order.ORDER_STATUS.SERVED
+    else:
+        new_status = Order.ORDER_STATUS.PARTIALY_SERVED
+
+
+    if order.status != new_status:
+        order.status = new_status
+        order.save(update_fields=["status"])  # the Order signals add the history row
+

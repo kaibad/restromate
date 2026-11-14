@@ -42,10 +42,11 @@ class MenuItemAdmin(admin.ModelAdmin):
 class OrderAdmin(admin.ModelAdmin):
     list_display = ("id", "table","status", "created_at")
     list_filter = ("status",)
+    readonly_fields = ("status",)
 
 @admin.register(OrderItem)
 class OrderItemAdmin(admin.ModelAdmin):
-    list_display = ("menu_item", "price", "quantity","order")
+    list_display = ("menu_item", "price", "quantity","status","order")
     list_select_related = ("order", "menu_item")
     list_filter = ("menu_item__category",)
     search_fields = ("menu_item__name", "order__table__name")
