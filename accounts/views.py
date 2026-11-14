@@ -1,6 +1,9 @@
 from django.shortcuts import render,redirect
 from django.contrib.auth import authenticate, get_user_model,login,logout
 from django.contrib import messages
+from typing import cast
+
+from accounts.models import User
 
 # User = get_user_model()
 
@@ -32,15 +35,23 @@ def login_view(request):
         # print("Authenticated user:", user)
 
         if user is not None:
+            user = cast(User, user) #cast(User, user) tells Pylance that the authenticated user is your custom User model.
+
             login(request,user)
             messages.success(request,"Login Sucessful")
+
             if remember_me is None:
                 request.session.set_expiry(0)
-            return redirect("tables_view_url")
+
+            if user.role == User.ROLES_CHOICES.WAITER:
+                return redirect("tables_view_url")
+
+            elif user.role == User.ROLES_CHOICES.KITCHEN:
+                return redirect("kitchen_dashboard_view_url")
+
         else:
             messages.error(request,"Invalid Credentials")
             return redirect("login_view_url")
-
 
     return render(request, "accounts/login.html")
 

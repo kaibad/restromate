@@ -1,7 +1,7 @@
 import json
 
 from django.db import transaction
-from django.http import HttpResponseBadRequest
+from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 
 from accounts.models import User
@@ -92,5 +92,6 @@ def menu_view(request, table_id):
 
 
 @role_required([User.ROLES_CHOICES.KITCHEN])
-def kitchen_dashboard_view():
+def kitchen_dashboard_view(request):
     print("this is kitchen dashboard")
+    return HttpResponse("Kitchen Dashboard")
