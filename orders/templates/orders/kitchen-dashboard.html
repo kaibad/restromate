@@ -3,65 +3,259 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Restaurant Tables</title>
+        <meta http-equiv="refresh" content="30" />
+        <title>Kitchen Display | RestroMate</title>
         <script src="https://cdn.tailwindcss.com"></script>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+            rel="stylesheet"
+        />
+        <style>
+            @keyframes shrinkBar {
+                from {
+                    width: 100%;
+                }
+                to {
+                    width: 0%;
+                }
+            }
+            .refresh-progress {
+                animation: shrinkBar 30s linear forwards;
+            }
+        </style>
     </head>
 
-    <body class="bg-gray-50 min-h-screen">
-        <div class="max-w-6xl mx-auto px-4 py-8">
-            <!-- Messages -->
-            {% if messages %} {% for message in messages %}
-            <div
-                class="mb-4 flex justify-between items-center rounded-lg p-4 text-sm {% if message.tags == 'success' %}bg-green-100 text-green-800 {% elif message.tags == 'error' %}bg-red-100 text-red-800 {% elif message.tags == 'warning' %}bg-yellow-100 text-yellow-800 {% else %}bg-blue-100 text-blue-800{% endif %}"
-                role="alert"
-            >
-                <span>{{ message }}</span>
-
-                <button onclick="this.parentElement.remove()" class="text-lg font-bold">&times;</button>
+    <body class="min-h-screen bg-slate-950 text-slate-100 antialiased selection:bg-amber-500 selection:text-white">
+        <!-- Sticky Top Navigation -->
+        <header class="sticky top-0 z-30 border-b border-slate-800 bg-slate-900/95 backdrop-blur">
+            <div class="h-1 w-full bg-slate-800">
+                <div class="refresh-progress h-full bg-amber-500"></div>
             </div>
-            {% endfor %} {% endif %}
 
-            <!-- Header -->
-            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
-                <div>
-                    <h1 class="text-2xl font-bold text-gray-800">Kitchen Dashboard</h1>
-
-                    <p class="text-sm text-gray-500 mt-1">Manage your restaurant tables and availability.</p>
-
-                    <p class="text-sm text-gray-600 mt-2">
-                        Welcome, {{ request.user.first_name }} {{ request.user.last_name }}
-                        <span class="text-gray-400"> ({{ request.user.get_role_display }}) </span>
-                    </p>
+            <div class="mx-auto flex max-w-[1600px] items-center justify-between gap-4 px-4 py-3 sm:px-6">
+                <!-- Brand & Status -->
+                <div class="flex items-center gap-3.5">
+                    <div
+                        class="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-500/10 text-amber-400 ring-1 ring-amber-500/30"
+                    >
+                        <svg
+                            class="h-6 w-6"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            stroke-width="2.2"
+                            aria-hidden="true"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z"
+                            />
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2.5">
+                            <h1 class="text-xl font-black tracking-tight text-white">RestroMate</h1>
+                        </div>
+                        <p class="text-xs font-medium text-white-400">Kitchen Display &bull; Auto-syncs every 30s</p>
+                    </div>
                 </div>
 
-                <div class="flex items-center gap-3">
+                <!-- Right Controls -->
+                <div class="flex items-center gap-3 sm:gap-4">
+                    <div
+                        class="hidden items-center gap-2 rounded-xl bg-slate-800/80 px-3.5 py-2 text-sm font-semibold tabular-nums text-slate-200 ring-1 ring-slate-700 md:flex"
+                    >
+                        <svg
+                            class="h-4 w-4 text-amber-400"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                        </svg>
+                        <span id="live-clock">--:--:--</span>
+                    </div>
+
+                    <div
+                        class="flex items-center gap-3 rounded-full bg-slate-900 py-1.5 pl-1.5 pr-4 ring-1 ring-slate-800"
+                    >
+                        <span
+                            class="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500 text-sm font-black text-slate-950"
+                        >
+                            {{ user.username|slice:":1"|upper }}
+                        </span>
+                        <div class="hidden leading-tight sm:block">
+                            <p class="text-sm font-bold text-white">{% firstof user.get_full_name user.username %}</p>
+                            <p class="text-[11px] font-medium text-slate-400">{{ user.get_role_display }}</p>
+                        </div>
+                    </div>
+
                     <form method="post" action="{% url 'logout_view_url' %}">
                         {% csrf_token %}
-
                         <button
                             type="submit"
-                            class="border border-gray-300 bg-white px-4 py-2.5 rounded-lg text-sm text-gray-600 hover:text-red-600"
+                            class="flex items-center gap-2 rounded-full bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:bg-rose-600 hover:text-white"
                         >
-                            Logout
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m0 3H9"
+                                />
+                            </svg>
+                            <span class="hidden sm:inline">Logout</span>
                         </button>
                     </form>
                 </div>
             </div>
+        </header>
 
-            <div>
-                {% for station_name,items in order_items.items %}
-                <div>{{station_name}}</div>
-                {% for item in items %}
-                <p class="font-medium">{{ item.quantity }} × {{ item.menu_item.name }}</p>
-                <p class="text-sm text-slate-500">
-                    {{ item.order.table.name }} · {{ item.get_priority_display }} priority
-                </p>
-                <p>{% if item.menu_item.est_time %}· ~{{ item.menu_item.est_time }} min {% endif %}</p>
-                {% endfor %}<br />
+        <!-- Main Workspace -->
+        <main class="mx-auto max-w-[1600px] px-4 py-6 sm:px-6">
+            {% if messages %}
+            <div class="mb-6 space-y-2.5">
+                {% for message in messages %}
+                <div
+                    class="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900 px-4 py-3.5 text-sm font-medium text-slate-200 shadow-sm"
+                    role="alert"
+                >
+                    <span>{{ message }}</span>
+                    <button type="button" onclick="this.parentElement.remove()" class="opacity-60 hover:opacity-100">
+                        &times;
+                    </button>
+                </div>
                 {% endfor %}
             </div>
+            {% endif %}
 
-            <p class="text-center text-xs text-gray-400 mt-6">Restaurant Management System</p>
-        </div>
+            <!-- Station Columns Grid -->
+            <div class="grid items-start gap-6 md:grid-cols-2 xl:grid-cols-3">
+                {% for station_name, items in order_items.items %}
+                <section
+                    class="flex flex-col overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 shadow-xl"
+                >
+                    <div
+                        class="flex items-center justify-between border-b border-slate-800 bg-slate-900/80 px-5 py-3.5 text-white"
+                    >
+                        <div class="flex items-center gap-2.5">
+                            <span
+                                class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10 text-amber-400"
+                            >
+                                <svg
+                                    class="h-5 w-5"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z"
+                                    />
+                                </svg>
+                            </span>
+                            <h2 class="text-lg font-extrabold tracking-tight text-white">{{ station_name }}</h2>
+                        </div>
+                        <span
+                            class="rounded-full bg-slate-800 px-3 py-1 text-xs font-bold uppercase tracking-wider text-amber-400"
+                        >
+                            {{ items|length }} {% if items|length == 1 %}Item{% else %}Items{% endif %}
+                        </span>
+                    </div>
+
+                    <ul class="divide-y divide-slate-800/80">
+                        {% for item in items %}
+                        <li
+                            class="group relative border-l-[6px] p-4 transition-colors sm:p-5 {% if item.priority == '3' %}border-rose-500 bg-rose-950/20 hover:bg-rose-950/30{% elif item.priority == '2' %}border-amber-400 bg-amber-950/20 hover:bg-amber-950/30{% else %}border-emerald-500 bg-slate-900/60 hover:bg-slate-900{% endif %}"
+                        >
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="flex items-start gap-3">
+                                    <span
+                                        class="flex h-9 min-w-[2.25rem] shrink-0 items-center justify-center rounded-lg px-2 text-lg font-black tabular-nums shadow-sm {% if item.priority == '3' %}bg-rose-600 text-white{% elif item.priority == '2' %}bg-amber-500 text-slate-950{% else %}bg-emerald-600 text-white{% endif %}"
+                                    >
+                                        {{ item.quantity }}×
+                                    </span>
+                                    <h3 class="pt-0.5 text-lg font-extrabold leading-snug text-white">
+                                        {{ item.menu_item.name }}
+                                    </h3>
+                                </div>
+
+                                <span
+                                    class="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-slate-800 px-2.5 py-1 text-xs font-extrabold uppercase tracking-wide text-slate-200"
+                                >
+                                    <svg
+                                        class="h-3.5 w-3.5 text-amber-400"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                        stroke-width="2.2"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            d="M3 8h18M5 8v11M19 8v11"
+                                        />
+                                    </svg>
+                                    {{ item.order.table.name }}
+                                </span>
+                            </div>
+
+                            <div class="mt-3.5 flex flex-wrap items-center gap-2 text-xs font-semibold">
+                                <span
+                                    class="inline-flex items-center gap-1 rounded-md px-2.5 py-1 ring-1 ring-inset {% if item.priority == '3' %}bg-rose-950/60 text-rose-300 ring-rose-800{% elif item.priority == '2' %}bg-amber-950/60 text-amber-300 ring-amber-800{% else %}bg-emerald-950/60 text-emerald-300 ring-emerald-800{% endif %}"
+                                >
+                                    {{ item.get_priority_display }}
+                                </span>
+                                <span
+                                    class="inline-flex items-center gap-1 rounded-md bg-slate-800 px-2.5 py-1 text-slate-300 ring-1 ring-inset ring-slate-700"
+                                >
+                                    Waiting {{ item.order.created_at|timesince }} ago
+                                </span>
+                                {% if item.menu_item.est_time %}
+                                <span
+                                    class="inline-flex items-center gap-1 rounded-md bg-sky-950/60 px-2.5 py-1 text-sky-300 ring-1 ring-inset ring-sky-800"
+                                >
+                                    Est. {{ item.menu_item.est_time }}m
+                                </span>
+                                {% endif %}
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </section>
+                {% empty %}
+                <div
+                    class="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-800 bg-slate-900 px-6 py-20 text-center shadow-sm md:col-span-2 xl:col-span-3"
+                >
+                    <h3 class="text-xl font-extrabold text-white">All Caught Up!</h3>
+                    <p class="mt-1 text-sm text-slate-400">No active tickets waiting right now.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </main>
+
+        <script>
+            function updateClock() {
+                const now = new Date();
+                const clockEl = document.getElementById("live-clock");
+                if (clockEl)
+                    clockEl.textContent = now.toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        second: "2-digit",
+                    });
+            }
+            updateClock();
+            setInterval(updateClock, 1000);
+        </script>
     </body>
 </html>
