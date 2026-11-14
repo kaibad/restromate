@@ -89,3 +89,8 @@ def menu_view(request, table_id):
         "unbilled_total": sum(order.total for order in orders),
     }
     return render(request, "orders/menu.html", context)
+
+
+@role_required([User.ROLES_CHOICES.KITCHEN])
+def kitchen_dashboard_view():
+    print("this is kitchen dashboard")

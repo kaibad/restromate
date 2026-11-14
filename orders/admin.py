@@ -32,7 +32,7 @@ class CategoryAdmin(admin.ModelAdmin):
 
 @admin.register(MenuItem)
 class MenuItemAdmin(admin.ModelAdmin):
-    list_display = ("name", "category", "price")
+    list_display = ("name", "category", "price","priority")
     list_filter = ("category",)
     list_select_related = ("category",)
     search_fields = ("name", "description", "category__name")

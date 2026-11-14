@@ -48,6 +48,7 @@ class Command(BaseCommand):
                 defaults={
                     "price": item["price"],
                     "description": item["description"],
+                    "priority": str(item["priority"]),
                 },
             )
             if item_created:
