@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Category, MenuItem, Table, Order, OrderItem
+from .models import Category, MenuItem, OrderHistory, Table, Order, OrderItem
 
 
 @admin.register(Table)
@@ -49,4 +49,6 @@ class OrderItemAdmin(admin.ModelAdmin):
     list_select_related = ("order", "menu_item")
     list_filter = ("menu_item__category",)
     search_fields = ("menu_item__name", "order__table__name")
-    
+
+
+admin.site.register(OrderHistory)

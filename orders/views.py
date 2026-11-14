@@ -9,6 +9,8 @@ from .decorators import role_required
 from .models import Category, MenuItem, Order, OrderItem, Table
 from django.contrib import messages
 
+# from .import signals
+
 
 @role_required([User.ROLES_CHOICES.WAITER])
 def tables_view(request):
@@ -46,7 +48,7 @@ def menu_view(request, table_id):
 
         if any(qty < 1 for qty in wanted.values()):
             return HttpResponseBadRequest("Quantities must be at least 1.")
-        
+
         # in_bulk fetches many objects in a single query and returns a dict keyed by primary key: {1: <MenuItem: Momo>, 6: <MenuItem: Tea>}
         menu_items = MenuItem.objects.in_bulk(wanted.keys())
         if len(menu_items) != len(wanted):
