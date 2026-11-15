@@ -1,0 +1,124 @@
+<aside class="hidden w-64 shrink-0 flex-col bg-green-900 text-white lg:sticky lg:top-0 lg:flex lg:h-screen">
+    <div class="flex items-center gap-3 px-5 py-5">
+        <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-lime-300 text-green-900">
+            <svg
+                class="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+                aria-hidden="true"
+            >
+                <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z"
+                />
+                <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M12 18a3.75 3.75 0 00.495-7.467 5.99 5.99 0 00-1.925 3.546 5.974 5.974 0 01-2.133-1A3.75 3.75 0 0012 18z"
+                />
+            </svg>
+        </span>
+        <div class="leading-tight">
+            <p class="text-xl font-extrabold tracking-tight">RestroMate</p>
+            <p class="text-xs font-semibold uppercase tracking-widest text-green-100">Kitchen</p>
+        </div>
+    </div>
+
+    <nav id="station-nav" class="flex-1 overflow-y-auto px-3 py-2">
+        <a
+            href="?"
+            class="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold hover:bg-green-800 {% if not selected_station %}bg-green-800{% endif %}"
+        >
+            <svg
+                class="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+                aria-hidden="true"
+            >
+                <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"
+                />
+            </svg>
+            All stations
+        </a>
+
+        <p class="px-3 pb-2 pt-6 text-xs font-semibold uppercase tracking-widest text-green-100">Stations</p>
+        {% for station in stations %}
+        <a
+            href="?station={{ station.code }}"
+            class="mt-1 flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-green-800 {% if selected_station == station.code %}bg-green-800 font-semibold{% endif %}"
+        >
+            <span class="flex items-center gap-2"
+                ><svg
+                    class="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    aria-hidden="true"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z"
+                    />
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M12 18a3.75 3.75 0 00.495-7.467 5.99 5.99 0 00-1.925 3.546 5.974 5.974 0 01-2.133-1A3.75 3.75 0 0012 18z"
+                    />
+                </svg>
+                {{ station.name }}</span
+            >
+            <span class="rounded-full bg-lime-300 px-2 py-0.5 text-xs font-bold text-green-900"
+                >{{ station.count }}</span
+            >
+        </a>
+        {% empty %}
+        <p class="px-3 text-sm text-green-100">No active stations.</p>
+        {% endfor %}
+    </nav>
+
+    <div class="border-t border-green-800 p-4">
+        <div class="flex items-center gap-3">
+            <span class="flex h-10 w-10 items-center justify-center rounded-full bg-lime-300 font-bold text-green-900">
+                {{ user.username|slice:":1"|upper }}
+            </span>
+            <div class="min-w-0 leading-tight">
+                <p class="truncate text-sm font-semibold">{% firstof user.get_full_name user.username %}</p>
+                <p class="text-xs text-green-100">{{ user.get_role_display }}</p>
+            </div>
+        </div>
+
+        <form method="post" action="{% url 'logout_view_url' %}" class="mt-4">
+            {% csrf_token %}
+            <button
+                type="submit"
+                class="flex w-full items-center justify-center gap-2 rounded-lg border border-green-200 px-4 py-2.5 text-sm font-medium hover:bg-white hover:text-green-900"
+            >
+                <svg
+                    class="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    aria-hidden="true"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m0 3H9"
+                    />
+                </svg>
+                Logout
+            </button>
+        </form>
+    </div>
+</aside>
