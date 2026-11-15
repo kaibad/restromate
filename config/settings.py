@@ -135,3 +135,23 @@ MAILERS = {
         'BACKEND': 'django.core.mail.backends.console.EmailBackend',
     },
 }
+
+# Restaurant information
+RESTAURANT_NAME = "RestroMate"
+RESTAURANT_ADDRESS = "Kathmandu, Nepal"
+RESTAURANT_PAN = "xxx-xxx-xxx"
+RESTAURANT_VAT = "xxx-xxx-xxx"
+
+# Thermal printer configuration
+PRINTER_MODE = "network"
+
+# Virtual ESC/POS printer
+PRINTER_IP = "127.0.0.1"
+PRINTER_PORT = 9100
+PRINTER_TIMEOUT = 10
+
+# 80mm receipt
+PRINTER_WIDTH = 48
+
+# Printer paper width
+PRINTER_WIDTH = 48  # 80mm printer, approximately 48 characters

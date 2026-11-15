@@ -85,9 +85,18 @@
                     class="lg:col-span-2 bg-white border rounded-xl p-6 print:col-span-3 print:border-0 print:rounded-none"
                 >
                     <div class="text-center border-b pb-5 mb-5">
-                        <h2 class="text-2xl font-bold text-gray-800">RestroMate</h2>
-                        <p class="text-sm text-gray-500 mt-1">
-                            {% if bill %}Bill{% else %}Receipt (not paid yet){% endif %}
+                        <h2 class="text-2xl font-bold text-gray-800">{{ restaurant_name }}</h2>
+
+                        <p class="text-sm text-gray-500 mt-1">{{ restaurant_address }}</p>
+
+                        <div class="text-sm text-gray-700 mt-3 space-y-1">
+                            <p><strong>PAN No:</strong> {{ restaurant_pan }}</p>
+
+                            <p><strong>VAT No:</strong> {{ restaurant_vat }}</p>
+                        </div>
+
+                        <p class="text-sm font-semibold text-gray-800 mt-3">
+                            {% if bill %}TAX INVOICE{% else %}ORDER RECEIPT{% endif %}
                         </p>
                     </div>
 
@@ -163,14 +172,25 @@
                             <p class="text-sm">{{ bill.get_method_display }} · {{ table.name }} is free again.</p>
                         </div>
                     </div>
-
                     <button
                         type="button"
                         onclick="window.print()"
-                        class="w-full bg-orange-600 text-white px-5 py-3 rounded-lg font-semibold hover:bg-orange-700"
+                        class="w-full mt-3 border border-gray-300 bg-white px-5 py-3 rounded-lg font-semibold text-gray-700 hover:bg-gray-50"
                     >
-                        Print bill
+                        Print using browser
                     </button>
+
+                    <form method="POST" action="{% url 'print_bill_url' bill.id %}">
+                        {% csrf_token %}
+
+                        <button
+                            type="submit"
+                            class="w-full bg-orange-600 text-white px-5 py-3 rounded-lg font-semibold hover:bg-orange-700"
+                        >
+                            <span>&#128424;</span>
+                            Print bill
+                        </button>
+                    </form>
 
                     <a
                         href="{% url 'tables_for_billing_url' %}"

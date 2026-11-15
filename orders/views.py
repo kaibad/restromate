@@ -10,6 +10,8 @@ from django.contrib import messages
 from collections import defaultdict
 from django.urls import reverse
 from django.views.decorators.http import require_POST
+from django.conf import settings
+from .utils.receipt_printer import print_bill_receipt
 
 
 def ready_items_for(table):
@@ -409,5 +411,38 @@ def _display_billing(request, table):
         "lines": lines,
         "total": total,
         "payment_methods": Bill.PAYMENT_METHOD.choices,
+        "restaurant_name": settings.RESTAURANT_NAME,
+        "restaurant_address": settings.RESTAURANT_ADDRESS,
+        "restaurant_pan": settings.RESTAURANT_PAN,
+        "restaurant_vat": settings.RESTAURANT_VAT,
     }
     return render(request, "orders/billing.html", context)
+
+
+
+
+@role_required([User.ROLES_CHOICES.BILLING])
+@require_POST
+def print_bill_view(request, bill_id):
+
+    bill = get_object_or_404(Bill, pk=bill_id)
+
+    try:
+        print_bill_receipt(bill)
+
+        messages.success(
+            request,
+            "Receipt successfully sent to the virtual printer!"
+        )
+
+    except Exception as error:
+
+        messages.error(
+            request,
+            f"Printer error: {error}"
+        )
+
+    return redirect(
+        f"{reverse('billing_view_url', kwargs={'table_id': bill.table.pk})}?bill={bill.pk}"
+    )
+
