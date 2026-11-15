@@ -48,8 +48,9 @@ class OrderAdmin(admin.ModelAdmin):
 class OrderItemAdmin(admin.ModelAdmin):
     list_display = ("menu_item", "price", "quantity","status","order")
     list_select_related = ("order", "menu_item")
-    list_filter = ("menu_item__category",)
+    list_filter = ("menu_item__category","order__table",)
     search_fields = ("menu_item__name", "order__table__name")
+    list_editable = ("status",)
 
 
 admin.site.register(OrderHistory)

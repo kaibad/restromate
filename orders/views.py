@@ -1,14 +1,13 @@
 import json
 
 from django.db import transaction
-from django.http import HttpResponse, HttpResponseBadRequest
+from django.db.models import Exists, OuterRef
+from django.http import JsonResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
-
 from accounts.models import User
 from .decorators import role_required
 from .models import Category, KitchenStation, MenuItem, Order, OrderItem, Table
 from django.contrib import messages
-
 from collections import defaultdict
 
 
@@ -173,3 +172,24 @@ def kicthen_item_view(request, pk):
         return redirect(f"{reverse('kitchen_dashboard_view_url')}?station={station_code}")
 
     return render(request, "orders/kicthen_item.html", {"order_item": order_item})
+
+@role_required([User.ROLES_CHOICES.WAITER])
+def tables_status_live(request):
+    ready_items = OrderItem.objects.filter(
+        order__table=OuterRef("pk"),
+        status=OrderItem.ITEM_STATUS.READY
+    )
+
+    tables = Table.objects.filter(
+        Exists(ready_items)
+    )
+
+    table_ids = list(
+        tables.values_list("id", flat=True)
+    )
+
+    # print([tables])
+
+    return JsonResponse({
+        "table_ids": table_ids,
+    })

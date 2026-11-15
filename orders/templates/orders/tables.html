@@ -5,6 +5,26 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Restaurant Tables</title>
         <script src="https://cdn.tailwindcss.com"></script>
+        <style>
+            @keyframes blinking {
+                0%,
+                100% {
+                    opacity: 1;
+                    background-color: #ffedd5; /* Light orange */
+                    color: #008000; /* Orange text */
+                }
+
+                50% {
+                    opacity: 1;
+                    background-color: #98fb98; /* Light red */
+                    color: #dc2626; /* Red text */
+                }
+            }
+
+            .blinking-effect {
+                animation: blinking 1s ease-in-out infinite;
+            }
+        </style>
     </head>
 
     <body class="bg-gray-50 min-h-screen">
@@ -81,7 +101,7 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                     {% for table in tables %}
 
-                    <a href="{% url 'menu_view_url' table.id %}" class="block">
+                    <a id="{{ table.id }}" href="{% url 'menu_view_url' table.id %}" class="block">
                         <div
                             class="border-2 border-gray-200 rounded-xl p-4 transition hover:border-orange-400 hover:bg-orange-50"
                         >
@@ -113,5 +133,38 @@
 
             <p class="text-center text-xs text-gray-400 mt-6">Restaurant Management System</p>
         </div>
+
+        <script>
+            function updateTableStatus() {
+                fetch("{% url 'tables_status_live_url' %}")
+                    .then((response) => {
+                        if (!response.ok) {
+                            throw new Error("Failed to fetch table status");
+                        }
+                        return response.json();
+                    })
+                    .then((data) => {
+                        tableIds = data.table_ids;
+                        //console.log("Ready tables:", tableIds);
+
+                        // Remove blinking from all tables
+                        document.querySelectorAll(".blinking-effect").forEach((el) => {
+                            el.classList.remove("blinking-effect");
+                        });
+
+                        tableIds.forEach((id) => {
+                            const tablesUIEl = document.getElementById(id);
+                            //console.log(tablesUIEl);
+                            if (tablesUIEl) {
+                                tablesUIEl.querySelector(".bg-orange-100")?.classList.add("blinking-effect");
+                            }
+                        });
+                    })
+                    .catch((error) => console.error("Error:", error));
+            }
+
+            updateTableStatus();
+            setInterval(updateTableStatus, 3000);
+        </script>
     </body>
 </html>
