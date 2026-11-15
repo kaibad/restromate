@@ -22,9 +22,13 @@ class Command(BaseCommand):
         # 1. Create the kitchen stations first, so items can point to them
         self.stations = {}
         stations_created = 0
-        for key, station_name in KITCHEN_STATION.items():
-            station, created = KitchenStation.objects.get_or_create(name=station_name)
-            self.stations[key] = station
+        for code, station_name in KITCHEN_STATION.items():
+            # Look up by code, so renaming a station in the data file renames it
+            # instead of creating a second station
+            station, created = KitchenStation.objects.update_or_create(
+                code=code, defaults={"name": station_name}
+            )
+            self.stations[code] = station
             if created:
                 stations_created += 1
 

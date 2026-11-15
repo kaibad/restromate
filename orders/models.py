@@ -24,6 +24,7 @@ class Category(models.Model):
 
 
 class KitchenStation(models.Model):
+     code = models.SlugField(max_length=50, unique=True)
      name = models.CharField( max_length=200)
 
      def __str__(self):

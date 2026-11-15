@@ -92,19 +92,84 @@ def menu_view(request, table_id):
 
 
 @role_required([User.ROLES_CHOICES.KITCHEN])
+
+
+@role_required([User.ROLES_CHOICES.KITCHEN])
 def kitchen_dashboard_view(request):
-    order_items = (
+    station_code = request.GET.get("station")  # e.g. /kitchen/?station=grill
+
+    all_items = list(
         OrderItem.objects.filter(status=OrderItem.ITEM_STATUS.PREPARING)
         .select_related("menu_item__station", "order__table")
         .order_by("-priority", "order__created_at")
     )
 
-    grouped_items = defaultdict(list)
-    for item in order_items:
+    def code_of(item):
         station = item.menu_item.station
-        station_name = station.name if station else "No station"
-        grouped_items[station_name].append(item)
+        return station.code if station else "none"
 
+    # Sidebar: every station with items waiting, and its count (never filtered)
+    stations = {}
+    for item in all_items:
+        station = item.menu_item.station
+        entry = stations.setdefault(
+            code_of(item),
+            {
+                "code": code_of(item),
+                "name": station.name if station else "No station",
+                "count": 0,
+            },
+        )
+        entry["count"] += 1
 
-    context = {"order_items": dict(grouped_items)}
+    # Filter only if the code matches a station that has items waiting
+    selected = stations.get(station_code) if station_code else None
+
+    if selected:
+        shown_items = [i for i in all_items if code_of(i) == selected["code"]]
+    else:
+        shown_items = all_items
+
+    grouped_items = defaultdict(list)
+    for item in shown_items:
+        station = item.menu_item.station
+        grouped_items[station.name if station else "No station"].append(item)
+
+    context = {
+        "order_items": dict(grouped_items),
+        "stations": list(stations.values()),
+        "selected_station": selected["code"] if selected else "",
+        "selected_station_name": selected["name"] if selected else "",
+        "total_items": len(shown_items),
+        "high_priority_count": sum(
+            1 for i in shown_items if i.priority == MenuItem.PRIORITY_CHOICES.HIGH
+        ),
+        "oldest_order_time": min((i.order.created_at for i in shown_items), default=None),
+    }
     return render(request, "orders/kitchen-dashboard.html", context)
+
+
+from django.urls import reverse
+
+
+@role_required([User.ROLES_CHOICES.KITCHEN])
+def kicthen_item_view(request, pk):
+    order_item = get_object_or_404(
+        OrderItem.objects.select_related("menu_item__station"), pk=pk
+    )
+
+    if request.method == "POST":
+        if order_item.status == OrderItem.ITEM_STATUS.PREPARING:
+            order_item.status = OrderItem.ITEM_STATUS.READY
+            order_item.save()  # save(), so your signals run
+            messages.success(request, f"{order_item.menu_item.name} marked as ready.")
+        else:
+            status_label = OrderItem.ITEM_STATUS(order_item.status).label.lower()
+            messages.warning(request, f"{order_item.menu_item.name} is already {status_label}.")
+
+        # Go back to the board for this item's station
+        station = order_item.menu_item.station
+        station_code = station.code if station else "none"
+        return redirect(f"{reverse('kitchen_dashboard_view_url')}?station={station_code}")
+
+    return render(request, "orders/kicthen_item.html", {"order_item": order_item})
