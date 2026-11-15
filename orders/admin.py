@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Category, KitchenStation, MenuItem, OrderHistory, Table, Order, OrderItem
+from .models import Bill, Category, KitchenStation, MenuItem, OrderHistory, Table, Order, OrderItem
 
 
 @admin.register(Table)
@@ -52,6 +52,10 @@ class OrderItemAdmin(admin.ModelAdmin):
     search_fields = ("menu_item__name", "order__table__name")
     list_editable = ("status",)
 
+
+@admin.register(Bill)
+class BillAdmin(admin.ModelAdmin):
+    list_display = ("table", "method", "total","billed_by","paid_at")
 
 admin.site.register(OrderHistory)
 admin.site.register(KitchenStation)

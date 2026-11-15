@@ -1,6 +1,6 @@
-
 from django.db import models
 import uuid
+from django.conf import settings
 
 # Create your models here.
 class Table(models.Model):
@@ -60,6 +60,7 @@ class Order(models.Model):
      table = models.ForeignKey(Table,on_delete=models.PROTECT,related_name="orders")
      status =  models.CharField(max_length=2,choices=ORDER_STATUS,default=ORDER_STATUS.PENDING)
      created_at = models.DateTimeField(auto_now_add=True)
+     bill = models.ForeignKey("Bill", null=True, blank=True, on_delete=models.PROTECT, related_name="orders")
 
 
      @property
@@ -101,3 +102,20 @@ class OrderHistory(models.Model):
 
      def __str__(self):
           return f"{self.order} -> {self.status}"
+
+
+class Bill(models.Model):
+    class PAYMENT_METHOD(models.TextChoices):
+        CASH = "c", "Cash"
+        QR = "q", "QR / Wallet"
+        CARD = "d", "Card"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    table = models.ForeignKey(Table, on_delete=models.PROTECT, related_name="bills")
+    total = models.PositiveIntegerField()
+    method = models.CharField(max_length=2, choices=PAYMENT_METHOD, default=PAYMENT_METHOD.CASH)
+    billed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="bills")
+    paid_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.table} - NRS {self.total}"

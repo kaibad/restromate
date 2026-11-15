@@ -5,12 +5,11 @@ from django.http import JsonResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from accounts.models import User
 from .decorators import role_required
-from .models import Category, KitchenStation, MenuItem, Order, OrderItem, Table
+from .models import Category, Bill, MenuItem, Order, OrderItem, Table,OrderHistory
 from django.contrib import messages
 from collections import defaultdict
 from django.urls import reverse
 from django.views.decorators.http import require_POST
-
 
 
 def ready_items_for(table):
@@ -263,3 +262,152 @@ def billing_tables_status_live(request):
     return JsonResponse({
         "table_ids": table_ids,
     })
+
+
+
+
+@role_required([User.ROLES_CHOICES.BILLING])
+def billing_view(request, table_id):
+    table = get_object_or_404(Table, pk=table_id)
+
+    if request.method == "POST":
+        return _confirm_billing_payment(request, table)
+
+    return _display_billing(request, table)
+
+
+def _confirm_billing_payment(request, table):
+    method = request.POST.get("method")
+    valid_methods = dict(Bill.PAYMENT_METHOD.choices)
+
+    if method not in valid_methods:
+        messages.error(request, "Invalid payment method.")
+        return redirect("billing_view_url", table_id=table.pk)
+
+    with transaction.atomic():
+        # Lock table to prevent simultaneous billing
+        table = Table.objects.select_for_update().get(pk=table.pk)
+
+        # Get all unbilled orders
+        orders = list(
+            Order.objects.select_for_update().filter(
+                table=table,
+                bill__isnull=True
+            )
+        )
+
+        if not orders:
+            messages.error(
+                request,
+                "No unbilled orders available for this table."
+            )
+            return redirect("tables_for_billing_url")
+
+        # Ensure every order is served
+        if any(
+            order.status != Order.ORDER_STATUS.SERVED
+            for order in orders
+        ):
+            messages.error(
+                request,
+                "All orders must be served before payment."
+            )
+            return redirect("tables_for_billing_url")
+
+        # Retrieve all order items
+        items = list(
+            OrderItem.objects.filter(
+                order__in=orders
+            ).select_related("menu_item")
+        )
+
+        if not items:
+            messages.error(request, "No order items found.")
+            return redirect("tables_for_billing_url")
+
+        total = sum(item.line_total for item in items)
+        bill = Bill.objects.create(
+            table=table,
+            total=total,
+            method=method,
+            billed_by=request.user
+        )
+
+        Order.objects.filter(
+            id__in=[order.id for order in orders]
+        ).update(
+            bill=bill,
+            status=Order.ORDER_STATUS.BILLED
+        )
+
+        OrderHistory.objects.bulk_create([
+            OrderHistory(
+                order=order,
+                status=Order.ORDER_STATUS.BILLED
+            )
+            for order in orders
+        ])
+
+        table.is_reserved = False
+        table.save(update_fields=["is_reserved"])
+
+    messages.success(request, "Payment successfully received!")
+    return redirect(f"{reverse('billing_view_url', kwargs={'table_id': table.pk})}?bill={bill.pk}")
+
+
+def _display_billing(request, table):
+    bill = None
+    bill_id = request.GET.get("bill")
+
+    if bill_id:
+        bill = Bill.objects.filter(id=bill_id, table=table).first()
+        if not bill:
+            messages.error(request, "Bill not found.")
+            return redirect("tables_for_billing_url")
+        orders = Order.objects.filter(bill=bill)
+    else:
+        orders = Order.objects.filter(table=table, bill__isnull=True)
+        if not orders.exists():
+            bill = Bill.objects.filter(
+                table=table
+            ).order_by("-paid_at").first()
+            if bill:
+                orders = Order.objects.filter(bill=bill)
+            else:
+                messages.info(request, "No orders available for this table.")
+                return redirect("tables_for_billing_url")
+        elif orders.exclude(status=Order.ORDER_STATUS.SERVED).exists():
+            messages.warning(
+                request,
+                "All orders must be served before billing."
+            )
+            return redirect("tables_for_billing_url")
+
+    items = OrderItem.objects.filter(
+        order__in=orders
+    ).select_related("menu_item")
+
+    combined_lines = {}
+    for item in items:
+        key = (item.menu_item.pk, item.price)
+        if key not in combined_lines:
+            combined_lines[key] = {
+                "name": item.menu_item.name,
+                "quantity": 0,
+                "price": item.price,
+                "total": 0,
+            }
+        combined_lines[key]["quantity"] += item.quantity
+        combined_lines[key]["total"] += item.line_total
+
+    lines = list(combined_lines.values())
+    total = sum(line["total"] for line in lines)
+
+    context = {
+        "table": table,
+        "bill": bill,
+        "lines": lines,
+        "total": total,
+        "payment_methods": Bill.PAYMENT_METHOD.choices,
+    }
+    return render(request, "orders/billing.html", context)

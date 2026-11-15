@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Restaurant Tables</title>
+        <title>Billing | RestroMate</title>
         <script src="https://cdn.tailwindcss.com"></script>
         <style>
             @keyframes blinking {
@@ -44,13 +44,15 @@
             <!-- Header -->
             <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
                 <div>
-                    <h1 class="text-2xl font-bold text-gray-800">Restaurant Tables</h1>
+                    <h1 class="text-2xl font-bold text-gray-800">Billing</h1>
 
-                    <p class="text-sm text-gray-500 mt-1">Manage your restaurant tables and availability.</p>
+                    <p class="text-sm text-gray-500 mt-1">
+                        Tables that are fully served blink. Click a blinking table to open its bill.
+                    </p>
 
                     <p class="text-sm text-gray-600 mt-2">
-                        Welcome, {{ request.user.first_name }} {{ request.user.last_name }}
-                        <span class="text-gray-400"> ({{ request.user.get_role_display }}) </span>
+                        Welcome, {% firstof user.get_full_name user.username %}
+                        <span class="text-gray-400"> ({{ user.get_role_display }}) </span>
                     </p>
                 </div>
 
@@ -93,7 +95,7 @@
                 <div class="flex justify-between items-center mb-6">
                     <div>
                         <h2 class="font-semibold text-gray-800 text-lg">Restaurant Tables</h2>
-                        <p class="text-sm text-gray-500">Select a table to manage it.</p>
+                        <p class="text-sm text-gray-500">Select a table to see its bill.</p>
                     </div>
                 </div>
 
@@ -101,7 +103,7 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                     {% for table in tables %}
 
-                    <a id="{{ table.id }}" href="{% url 'menu_view_url' table.id %}" class="block">
+                    <a id="{{ table.id }}" href="{% url 'billing_view_url' table.id %}" class="block">
                         <div
                             class="border-2 border-gray-200 rounded-xl p-4 transition hover:border-orange-400 hover:bg-orange-50"
                         >

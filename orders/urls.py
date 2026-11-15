@@ -15,6 +15,7 @@ urlpatterns = [
 
     path("billing/", views.tables_for_billing, name="tables_for_billing_url"),
     path("billing/live/",views.billing_tables_status_live,name="billing_tables_status_live_url"),
+    path("billing/table/<table_id>/", views.billing_view, name="billing_view_url"),
 
 
 ]
