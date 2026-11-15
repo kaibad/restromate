@@ -12,4 +12,9 @@ urlpatterns = [
 
     path("menu/<table_id>/ready/", views.ready_items_partial, name="ready_items_url"),
     path("items/serve/", views.serve_item_view, name="serve_item_url"),
+
+    path("billing/", views.tables_for_billing, name="tables_for_billing_url"),
+    path("billing/live/",views.billing_tables_status_live,name="billing_tables_status_live_url"),
+
+
 ]

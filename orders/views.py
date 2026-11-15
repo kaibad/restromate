@@ -1,5 +1,4 @@
 import json
-
 from django.db import transaction
 from django.db.models import Exists, OuterRef
 from django.http import JsonResponse, HttpResponseBadRequest
@@ -9,7 +8,6 @@ from .decorators import role_required
 from .models import Category, KitchenStation, MenuItem, Order, OrderItem, Table
 from django.contrib import messages
 from collections import defaultdict
-
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 
@@ -103,9 +101,6 @@ def menu_view(request, table_id):
 
 
 @role_required([User.ROLES_CHOICES.KITCHEN])
-
-
-@role_required([User.ROLES_CHOICES.KITCHEN])
 def kitchen_dashboard_view(request):
     station_code = request.GET.get("station")  # e.g. /kitchen/?station=grill
 
@@ -160,8 +155,6 @@ def kitchen_dashboard_view(request):
     return render(request, "orders/kitchen-dashboard.html", context)
 
 
-
-
 @role_required([User.ROLES_CHOICES.KITCHEN])
 def kicthen_item_view(request, pk):
     order_item = get_object_or_404(
@@ -206,7 +199,6 @@ def tables_status_live(request):
     })
 
 
-
 @role_required([User.ROLES_CHOICES.WAITER])
 def ready_items_partial(request, table_id):
     """Only the 'ready to serve' box. The menu page polls this to stay up to date."""
@@ -237,4 +229,37 @@ def serve_item_view(request):
     return redirect("menu_view_url", table_id=item.order.table_id) # type: ignore
 
 
+@role_required([User.ROLES_CHOICES.BILLING])
+def tables_for_billing(request):
+    tables = Table.objects.all()
 
+    available_count = tables.filter(is_reserved=False).count()
+    occupied_count = tables.filter(is_reserved=True).count()
+
+    return render(request, "orders/tables-for-billing.html", {
+        "tables": tables,
+        "available_count": available_count,
+        "occupied_count": occupied_count,
+    })
+
+
+@role_required([User.ROLES_CHOICES.BILLING])
+def billing_tables_status_live(request):
+
+    all_tables = Order.objects.values_list(
+        'table_id', flat=True
+    ).distinct()
+
+    table_ids = []
+
+    for table_id in all_tables:
+        orders = Order.objects.filter(table_id=table_id)
+
+        if not orders.exclude(
+            status=Order.ORDER_STATUS.SERVED
+        ).exists():
+            table_ids.append(str(table_id))
+
+    return JsonResponse({
+        "table_ids": table_ids,
+    })
