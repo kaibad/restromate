@@ -10,7 +10,18 @@ from .models import Category, KitchenStation, MenuItem, Order, OrderItem, Table
 from django.contrib import messages
 from collections import defaultdict
 
+from django.urls import reverse
+from django.views.decorators.http import require_POST
 
+
+
+def ready_items_for(table):
+    """Items of this table that the kitchen finished and the waiter has not served yet."""
+    return (
+        OrderItem.objects.filter(order__table=table, status=OrderItem.ITEM_STATUS.READY)
+        .select_related("menu_item", "order")
+        .order_by("order__created_at")
+    )
 
 
 @role_required([User.ROLES_CHOICES.WAITER])
@@ -86,6 +97,7 @@ def menu_view(request, table_id):
         "table_id": table_id,
         "orders": orders,
         "unbilled_total": sum(order.total for order in orders),
+        "ready_items": ready_items_for(table),
     }
     return render(request, "orders/menu.html", context)
 
@@ -148,7 +160,6 @@ def kitchen_dashboard_view(request):
     return render(request, "orders/kitchen-dashboard.html", context)
 
 
-from django.urls import reverse
 
 
 @role_required([User.ROLES_CHOICES.KITCHEN])
@@ -193,3 +204,37 @@ def tables_status_live(request):
     return JsonResponse({
         "table_ids": table_ids,
     })
+
+
+
+@role_required([User.ROLES_CHOICES.WAITER])
+def ready_items_partial(request, table_id):
+    """Only the 'ready to serve' box. The menu page polls this to stay up to date."""
+    table = get_object_or_404(Table, id=table_id)
+    return render(request, "orders/_ready_items.html", {"ready_items": ready_items_for(table)})
+
+
+@role_required([User.ROLES_CHOICES.WAITER])
+@require_POST
+def serve_item_view(request):
+    item_id = request.POST.get("item_id", "")
+    if not item_id.isdigit():
+        return HttpResponseBadRequest("Invalid item.")
+
+    item = get_object_or_404(
+        OrderItem.objects.select_related("menu_item", "order"), pk=int(item_id)
+    )
+
+    # Only ready -> served is allowed from here
+    if item.status == OrderItem.ITEM_STATUS.READY:
+        item.status = OrderItem.ITEM_STATUS.SERVED
+        item.save()  # save(), so the order-status signal runs
+        messages.success(request, f"{item.menu_item.name} marked as served.")
+    else:
+        label = OrderItem.ITEM_STATUS(item.status).label.lower()
+        messages.warning(request, f"{item.menu_item.name} is {label}, so it can't be served from here.")
+
+    return redirect("menu_view_url", table_id=item.order.table_id) # type: ignore
+
+
+
