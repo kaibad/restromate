@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+        <title>{% block title %}Restaurant Management System{% endblock %}</title>
+
+        <script src="https://cdn.tailwindcss.com"></script>
+
+        {% block extra_css %}{% endblock %}
+    </head>
+
+    <body class="{% block body_class %}bg-gray-50 min-h-screen print:bg-white{% endblock %}">
+        {% comment %}
+            Default layout: a centered container with messages, a header (welcome + logout), the page
+            content and a footer. Pages with their own layout (sidebar, full-screen form, centered card)
+            override the whole "body" block instead.
+        {% endcomment %}
+        {% block body %}
+        <div class="max-w-6xl mx-auto px-4 py-8 {% block container_class %}{% endblock %}">
+            <!-- Messages -->
+            {% include "_messages.html" %}
+
+            <!-- Header -->
+            {% block header %}
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8 print:hidden">
+                <div>
+                    {% block back_link %}{% endblock %}
+
+                    <h1 class="text-2xl font-bold text-gray-800">
+                        {% block page_heading %}Restaurant Management System{% endblock %}
+                    </h1>
+
+                    <p class="text-sm text-gray-500 mt-1">
+                        {% block page_description %}Manage your restaurant efficiently.{% endblock %}
+                    </p>
+
+                    {% if user.is_authenticated %}
+                    <p class="text-sm text-gray-600 mt-2">
+                        Welcome, {% firstof user.get_full_name user.username %}
+                        <span class="text-gray-400"> ({{ user.get_role_display }}) </span>
+                    </p>
+                    {% endif %}
+                </div>
+
+                {% if user.is_authenticated %}
+                <div class="flex items-center gap-3">
+                    <form method="post" action="{% url 'logout_view_url' %}">
+                        {% csrf_token %}
+
+                        <button
+                            type="submit"
+                            class="border border-gray-300 bg-white px-4 py-2.5 rounded-lg text-sm text-gray-600 hover:text-red-600"
+                        >
+                            Logout
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+            {% endblock %}
+
+            <!-- Main Content -->
+            {% block content %}{% endblock %}
+
+            <!-- Footer -->
+            {% block footer %}
+            <p class="text-center text-xs text-gray-400 mt-6 print:hidden">Restaurant Management System: <a href="https://kailashbadu.com.np">Kailash Badu</a></p>
+            {% endblock %}
+        </div>
+        {% endblock body %}
+
+        {% block extra_js %}{% endblock %}
+    </body>
+</html>

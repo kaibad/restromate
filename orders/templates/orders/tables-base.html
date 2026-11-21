@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% comment %}
+    Shared layout for the two tables pages (waiter and billing). A page that extends this one fills in:
+    page_heading, page_description, table_href (where a table links to) and live_status_url (the JSON
+    endpoint used for the blinking). It can also change list_subtitle.
+{% endcomment %}
+
+{% block extra_css %}
+<style>
+    @keyframes blinking {
+        0%,
+        100% {
+            opacity: 1;
+            background-color: #ffedd5; /* Light orange */
+            color: #008000; /* Orange text */
+        }
+
+        50% {
+            opacity: 1;
+            background-color: #98fb98; /* Light red */
+            color: #dc2626; /* Red text */
+        }
+    }
+
+    .blinking-effect {
+        animation: blinking 1s ease-in-out infinite;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Statistics -->
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+    <div class="bg-white border rounded-xl p-5">
+        <p class="text-sm text-gray-500">Total Tables</p>
+
+        <h2 class="text-3xl font-bold text-gray-800 mt-2">{{ tables.count }}</h2>
+    </div>
+
+    <div class="bg-white border rounded-xl p-5">
+        <p class="text-sm text-gray-500">Available</p>
+
+        <h2 class="text-3xl font-bold text-green-600 mt-2">{{ available_count }}</h2>
+    </div>
+
+    <div class="bg-white border rounded-xl p-5">
+        <p class="text-sm text-gray-500">Occupied</p>
+
+        <h2 class="text-3xl font-bold text-red-500 mt-2">{{ occupied_count }}</h2>
+    </div>
+</div>
+
+<div class="bg-white border rounded-xl p-6">
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h2 class="font-semibold text-gray-800 text-lg">Restaurant Tables</h2>
+            <p class="text-sm text-gray-500">{% block list_subtitle %}Select a table to manage it.{% endblock %}</p>
+        </div>
+    </div>
+
+    <!-- Table Selection -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        {% for table in tables %}
+
+        <a id="{{ table.id }}" href="{% block table_href %}{% endblock %}" class="block">
+            <div
+                class="border-2 border-gray-200 rounded-xl p-4 transition hover:border-orange-400 hover:bg-orange-50"
+            >
+                <div class="flex justify-between items-center mb-4">
+                    <div class="bg-orange-100 text-orange-600 p-3 rounded-lg">
+                        <span class="text-xl">&#9638;</span>
+                    </div>
+
+                    {% if table.is_reserved %}
+                    <span class="bg-red-100 text-red-600 px-2 py-1 rounded-full text-xs"> Occupied </span>
+                    {% else %}
+                    <span class="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs">
+                        Available
+                    </span>
+                    {% endif %}
+                </div>
+
+                <h3 class="font-bold text-gray-800">{{ table.name }}</h3>
+
+                <p class="text-xs text-gray-500 mt-1">{{ table.capacity|default:"Not set" }} Persons</p>
+            </div>
+        </a>
+
+        {% empty %}
+        <p class="col-span-full text-center text-gray-500 py-8">No tables available.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function updateTableStatus() {
+        fetch("{% block live_status_url %}{% endblock %}")
+            .then((response) => {
+                if (!response.ok) {
+                    throw new Error("Failed to fetch table status");
+                }
+                return response.json();
+            })
+            .then((data) => {
+                tableIds = data.table_ids;
+                //console.log("Ready tables:", tableIds);
+
+                // Remove blinking from all tables
+                document.querySelectorAll(".blinking-effect").forEach((el) => {
+                    el.classList.remove("blinking-effect");
+                });
+
+                tableIds.forEach((id) => {
+                    const tablesUIEl = document.getElementById(id);
+                    //console.log(tablesUIEl);
+                    if (tablesUIEl) {
+                        tablesUIEl.querySelector(".bg-orange-100")?.classList.add("blinking-effect");
+                    }
+                });
+            })
+            .catch((error) => console.error("Error:", error));
+    }
+
+    updateTableStatus();
+    setInterval(updateTableStatus, 3000);
+</script>
+{% endblock %}
